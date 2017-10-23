@@ -133,17 +133,27 @@ def handle_calculate_IK(req):
 		
             # Populate response for the IK request
             # In the next line replace theta1,theta2...,theta6 by your joint angle variables
+	    # From the class notes we derive theta 1 from the wrist center by performing the arc tan function to project Zc onto the ground plane:
+	    
+            #theta1 = atan2(yc, xc)
 
             theta1 = atan2(WC[1], WC[0])
+            # To get theta2 and theta3, we need to project links 2 and 3 onto the x-z plane. 
+            #theta2 = atan2(s,r) and to derive r we use the following equation:
+            #r^2 = xc^2 +yc^2
+            #To get S, S = zc - d1
 
             #triangle for theta2 and theta3
             side_a = 1.501
-            side_b = sqrt(pow((sqrt(WC[0] * WC[0] + WC[1] *WC[1]) - 0.35),2) +pow((WC[2] - 0.75),2))
+            side_b = sqrt(pow((sqrt(WC[0] * WC[0] + WC[1] *WC[1]) - 0.35),2) +pow((WC[2] - 0.75),2))  # deriving r
             side_c = 1.25
 
             angle_a = acos((side_b *side_b + side_c * side_c - side_a *side_a) / (2* side_b*side_c))
             angle_b = acos((side_a *side_a + side_c * side_c - side_b *side_b) / (2* side_a*side_c))
             angle_c = acos((side_a *side_a + side_b * side_b - side_c *side_c) / (2* side_a*side_b))
+
+	    #To get D3, we use the equation:
+	    # d3 = (r^2+s^2)^1/2 = sqrt(xc^2+yc^2 +(zc-d1)^2)
 
             theta2 = pi/2 - angle_a - atan2(WC[2] - 0.75, sqrt(WC[0] *WC[0] + WC[1] *WC[1]) -0.35)
             theta3 = pi/2 - (angle_b +0.036)
@@ -151,8 +161,9 @@ def handle_calculate_IK(req):
             R0_3 = T0_1[0:3, 0:3] *T1_2[0:3, 0:3] * T2_3[0:3, 0:3]
             R0_3 = R0_3.evalf(subs={q1: theta1, q2: theta2, q3: theta3})
 
-    
-            R3_6 = R0_3.inv("LU") *Rot_EE
+           #From euler angle notes (step 5): R3_6 = R_0_3^-1*R0_6 = R0_3^T * R0_6
+           # R3_6 = R0_3.inv("LU") *Rot_EE; replaced LU with transpose:
+            R3_6 = R0_3.transpose() *Rot_EE
 
            #Euler angles from rotation matrix:
 
