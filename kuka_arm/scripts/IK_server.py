@@ -120,7 +120,7 @@ def handle_calculate_IK(req):
             #calculate the rotation error:
             Rot_Error = Rot_z.subs(y, radians(180)) * Rot_y.subs(p, radians (-90))
 
-            #correct for error to match URDF File:
+            #correct for error to match URDF File from Gazebo:
             Rot_EE = Rot_EE * Rot_Error
             Rot_EE = Rot_EE.subs({'r': roll, 'p' : pitch, 'y': yaw})
 
@@ -144,9 +144,9 @@ def handle_calculate_IK(req):
             #To get S, S = zc - d1
 
             #triangle for theta2 and theta3
-            side_a = 1.501
-            side_b = sqrt(pow((sqrt(WC[0] * WC[0] + WC[1] *WC[1]) - 0.35),2) +pow((WC[2] - 0.75),2))  # deriving r
-            side_c = 1.25
+            side_a = 1.501 #D4
+            side_b = sqrt(pow((sqrt(WC[0] * WC[0] + WC[1] *WC[1]) - 0.35),2) +pow((WC[2] - 0.75),2))  #d1
+            side_c = 1.25 #a2
 
             angle_a = acos((side_b *side_b + side_c * side_c - side_a *side_a) / (2* side_b*side_c))
             angle_b = acos((side_a *side_a + side_c * side_c - side_b *side_b) / (2* side_a*side_c))
@@ -157,6 +157,7 @@ def handle_calculate_IK(req):
 
             theta2 = pi/2 - angle_a - atan2(WC[2] - 0.75, sqrt(WC[0] *WC[0] + WC[1] *WC[1]) -0.35)
             theta3 = pi/2 - (angle_b +0.036)
+            print 'Calculating Angles for Orientation'
 
             R0_3 = T0_1[0:3, 0:3] *T1_2[0:3, 0:3] * T2_3[0:3, 0:3]
             R0_3 = R0_3.evalf(subs={q1: theta1, q2: theta2, q3: theta3})
@@ -166,11 +167,20 @@ def handle_calculate_IK(req):
             R3_6 = R0_3.transpose() *Rot_EE
 
            #Euler angles from rotation matrix:
+            
 
-            theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+            
             theta5 = atan2(sqrt(R3_6[0,2]*R3_6[0,2] + R3_6[2,2]*R3_6[2,2]),R3_6[1,2])
             theta6 = atan2(-R3_6[1,1], R3_6[1,0])
 
+            if sin(theta5) <0:
+                theta4 = atan2(-R3_6[2,2], R3_6[0,2])
+                theta6 = atan2(R3_6[1,1], -R3_6[1,0])
+            else:
+                theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+                theta6 = atan2(-R3_6[1,1], R3_6[1,0])
+
+            print 'Calculated Trajectory Points are: '
 	    joint_trajectory_point.positions = [theta1, theta2, theta3, theta4, theta5, theta6]
 	    joint_trajectory_list.append(joint_trajectory_point)
 
